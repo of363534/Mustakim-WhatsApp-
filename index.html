@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>মেসেঞ্জার</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#0b141a;color:#e9edef;font-family:system-ui,sans-serif;overflow:hidden}
+.scr{position:fixed;inset:0;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#1f2c34;font-size:18px}
+header b{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+header button{background:none;border:0;color:#e9edef;font-size:22px;padding:4px 8px}
+#code{font-size:12px;color:#8696a0;padding:8px 14px;background:#111b21}
+#code u{color:#00a884}
+#list{flex:1;overflow:auto}
+.ct{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #ffffff10}
+.av{width:46px;height:46px;border-radius:50%;background:#00a884;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;flex:none}
+.ct .t{flex:1;min-width:0}.ct .n{font-size:17px}.ct .l{font-size:13px;color:#8696a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ct .m{font-size:12px;color:#8696a0;text-align:right}
+.bd{display:inline-block;background:#00a884;color:#06201a;border-radius:999px;padding:1px 8px;font-weight:700;margin-top:4px}
+.empty{padding:40px 24px;text-align:center;color:#8696a0;line-height:1.7}
+#fab{position:absolute;right:18px;bottom:22px;width:58px;height:58px;border-radius:18px;border:0;background:#00a884;color:#06201a;font-size:30px}
+#msgs{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:4px;background:#0b141a}
+.b{max-width:85%;padding:7px 10px 4px;border-radius:10px;font-size:16px;line-height:1.4;overflow-wrap:anywhere;white-space:pre-wrap}
+.b small{display:block;text-align:right;font-size:11px;color:#ffffff99;margin-top:2px}
+.b.me{align-self:flex-end;background:#005c4b;border-top-right-radius:2px}
+.b.th{align-self:flex-start;background:#202c33;border-top-left-radius:2px}
+#bar{display:flex;gap:8px;padding:8px;background:#1f2c34}
+#inp{flex:1;min-width:0;border:0;border-radius:999px;padding:12px 16px;font:inherit;font-size:16px;background:#2a3942;color:#e9edef;outline:0}
+#snd{width:48px;border:0;border-radius:50%;background:#00a884;color:#06201a;font-size:20px}
+.ov{position:fixed;inset:0;z-index:9;background:#0b141aee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;text-align:center}
+.ov input{width:100%;max-width:300px;padding:14px;border-radius:12px;border:0;font:inherit;font-size:18px;background:#2a3942;color:#fff;text-align:center;outline:0}
+.ov button.p{background:#00a884;color:#06201a;border:0;border-radius:999px;padding:13px 32px;font:inherit;font-size:18px;font-weight:700}
+#call{background:#000;padding:0;gap:0;justify-content:flex-end}
+#rv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#111}
+#lv{position:absolute;top:14px;right:14px;width:28%;max-width:130px;aspect-ratio:3/4;object-fit:cover;border-radius:12px;background:#222;border:2px solid #fff4;transform:scaleX(-1)}
+#cinfo{position:absolute;top:18px;left:0;right:0;font-size:20px;text-shadow:0 2px 6px #000}
+#ctl{position:relative;display:flex;gap:18px;padding:26px}
+#ctl button{width:62px;height:62px;border-radius:50%;border:0;font-size:26px;background:#ffffff33;color:#fff}
+#ctl button.off{background:#fff;color:#000}
+#ctl #end{background:#e53935}
+.rb{display:flex;gap:30px}
+.rb button{width:72px;height:72px;border-radius:50%;border:0;font-size:32px;color:#fff}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#323b41;padding:10px 18px;border-radius:999px;font-size:14px;z-index:20;opacity:0;transition:.3s;pointer-events:none;max-width:90%;text-align:center}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="home" class="scr">
+  <header><b>💬 মেসেঞ্জার</b><span id="st" style="font-size:12px;color:#8696a0">সংযোগ হচ্ছে…</span></header>
+  <div id="code"></div>
+  <div id="list"></div>
+  <button id="fab">＋</button>
+</div>
+
+<div id="chat" class="scr hide">
+  <header>
+    <button id="back">←</button>
+    <b id="cn"></b>
+    <button id="vc">🎥</button>
+    <button id="ac">📞</button>
+  </header>
+  <div id="msgs"></div>
+  <div id="bar">
+    <input id="inp" placeholder="মেসেজ লিখুন" autocomplete="off">
+    <button id="snd">➤</button>
+  </div>
+</div>
+
+<div id="call" class="ov hide">
+  <video id="rv" autoplay playsinline></video>
+  <video id="lv" autoplay playsinline muted></video>
+  <div id="cinfo"></div>
+  <div id="ctl">
+    <button id="mic">🎤</button>
+    <button id="cam">📷</button>
+    <button id="end">📵</button>
+  </div>
+</div>
+
+<div id="ring" class="ov hide">
+  <div style="font-size:64px">📞</div>
+  <div id="rn" style="font-size:22px"></div>
+  <div class="rb">
+    <button id="acc" style="background:#00a884">✔</button>
+    <button id="dec" style="background:#e53935">✖</button>
+  </div>
+</div>
+
+<div id="dlg" class="ov hide">
+  <div id="dt" style="font-size:20px"></div>
+  <input id="di">
+  <button class="p" id="dok">ঠিক আছে</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+const LS = (k,d) => {
+  try { return JSON.parse(localStorage.getItem(k)) || d; }
+  catch(e) { return d; }
+};
+
+const SV = (k,v) => {
+  try { localStorage.setItem(k,JSON.stringify(v)); }
+  catch(e) {}
+};
+
+let me = LS('mm_me',null);
+let ct = LS('mm_ct',[]);
+let hist = LS('mm_h',{});
+let unread = {};
+let openId = null;
+let peer = null;
+let conns = {};
+let call = null;
+let stream = null;
+let ringT = null;
+let pend = null;
+let ringtoneCtx = null;
+let ringtoneTimer = null;
+let toastTimer = null;
+
+const gen = () => {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+  let s = '';
+  for(let i=0;i<6;i++) s += chars[Math.random()*chars.length|0];
+  return s;
+};
+
+const tm = ts => new Date(ts).toLocaleTimeString('bn-BD',{
+  hour:'2-digit',minute:'2-digit'
+});
+
+function toast(t) {
+  const e = $('toast');
+  e.textContent = t;
+  e.style.opacity = 1;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>e.style.opacity=0,2600);
+}
+
+function beep(f,d=.1) {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    const a = beep.a || (beep.a = new AC());
+    const o = a.createOscillator();
+    const g = a.createGain();
+    o.frequency.value = f;
+    g.gain.value = .08;
+    g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);
+    o.connect(g);
+    g.connect(a.destination);
+    o.start();
+    o.stop(a.currentTime+d);
+  } catch(e) {}
+}
+
+function ask(title,ph,cb,val='') {
+  $('dt').textContent = title;
+  const i = $('di');
+  i.placeholder = ph;
+  i.value = val;
+  $('dlg').classList.remove('hide');
+  setTimeout(()=>i.focus(),50);
+
+  $('dok').onclick = () => {
+    const v = i.value.trim();
+    if(!v) return;
+    $('dlg').classList.add('hide');
+    cb(v);
+  };
+}
+
+/* সুন্দর ইনকামিং কল রিংটোন */
+
+function stopRingtone() {
+  clearTimeout(ringtoneTimer);
+  ringtoneTimer = null;
+
+  if(ringtoneCtx) {
+    const old = ringtoneCtx;
+    ringtoneCtx = null;
+    try { old.close(); } catch(e) {}
+  }
+}
+
+function startRingtone() {
+  stopRingtone();
+
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+
+    ringtoneCtx = new AC();
+
+    const melody = [
+      [659,0],
+      [784,0.20],
+      [988,0.40],
+      [784,0.70],
+      [659,1.00],
+      [784,1.20],
+      [988,1.40],
+      [1175,1.70]
+    ];
+
+    function playMelody() {
+      const ctx = ringtoneCtx;
+
+      if(!ctx || $('ring').classList.contains('hide')) {
+        stopRingtone();
+        return;
+      }
+
+      if(ctx.state === 'suspended') {
+        ctx.resume().catch(()=>{});
+      }
+
+      const start = ctx.currentTime + 0.05;
+
+      melody.forEach(([freq,offset])=>{
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq,start+offset);
+
+        gain.gain.setValueAtTime(0.001,start+offset);
+        gain.gain.linearRampToValueAtTime(0.13,start+offset+0.04);
+        gain.gain.setValueAtTime(0.13,start+offset+0.12);
+        gain.gain.exponentialRampToValueAtTime(
+          0.001,start+offset+0.34
+        );
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(start+offset);
+        osc.stop(start+offset+0.36);
+      });
+
+      ringtoneTimer = setTimeout(playMelody,3000);
+    }
+
+    playMelody();
+  } catch(e) {
+    stopRingtone();
+  }
+}
+
+/* কন্টাক্ট ও মেসেজ */
+
+const nameOf = id =>
+  (ct.find(c=>c.id===id)||{name:id}).name;
+
+function ensure(id,name) {
+  if(!id || id===me.id) return;
+
+  let c = ct.find(x=>x.id===id);
+
+  if(!c) {
+    ct.push({id,name:name||'বন্ধু '+id,auto:!name});
+  } else if(name && c.auto) {
+    c.name = name;
+    c.auto = false;
+  }
+
+  SV('mm_ct',ct);
+}
+
+function addMsg(id,o) {
+  hist[id] = hist[id] || [];
+
+  if(hist[id].some(x=>x.i===o.i)) return;
+
+  hist[id].push(o);
+  SV('mm_h',hist);
+
+  if(openId===id) renderMsgs();
+  renderHome();
+}
+
+function renderHome() {
+  $('code').innerHTML =
+    'আপনার কোড: <u id="cc"></u> (ট্যাপ করে কপি করুন) — বন্ধুকে এটা দিন';
+
+  $('cc').textContent = me.id;
+
+  $('cc').onclick = () => {
+    if(navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(me.id)
+        .then(()=>toast('কোড কপি হয়েছে'))
+        .catch(()=>toast('আপনার কোড: '+me.id));
+    } else {
+      toast('আপনার কোড: '+me.id);
+    }
+  };
+
+  const l = $('list');
+  l.innerHTML = '';
+
+  if(!ct.length) {
+    l.innerHTML =
+      '<div class="empty">কোনো চ্যাট নেই।<br>নিচে ＋ চেপে বন্ধুর কোড দিন।<br>বন্ধুকেও আপনার কোড দিন।</div>';
+    return;
+  }
+
+  const last = c => (hist[c.id]||[]).slice(-1)[0];
+
+  [...ct].sort((a,b)=>
+    ((last(b)||{}).ts||0)-((last(a)||{}).ts||0)
+  ).forEach(c=>{
+    const m = last(c);
+    const d = document.createElement('div');
+    d.className = 'ct';
+
+    d.innerHTML =
+      '<div class="av"></div><div class="t"><div class="n"></div><div class="l"></div></div><div class="m"></div>';
+
+    d.querySelector('.av').textContent = (c.name||'?')[0];
+    d.querySelector('.n').textContent = c.name;
+    d.querySelector('.l').textContent = m ? m.x : 'চ্যাট শুরু করুন';
+
+    d.querySelector('.m').textContent = m ? tm(m.ts) : '';
+
+    if(unread[c.id]) {
+      const badge = document.createElement('span');
+      badge.className = 'bd';
+      badge.textContent = unread[c.id];
+      d.querySelector('.m').append(document.createElement('br'),badge);
+    }
+
+    d.onclick = ()=>openChat(c.id);
+    l.appendChild(d);
+  });
+}
+
+function openChat(id) {
+  openId = id;
+  unread[id] = 0;
+  $('cn').textContent = nameOf(id);
+  $('home').classList.add('hide');
+  $('chat').classList.remove('hide');
+  renderMsgs();
+  renderHome();
+  getConn(id).catch(()=>{});
+}
+
+function renderMsgs() {
+  const box = $('msgs');
+  box.innerHTML = '';
+
+  if(!openId) return;
+
+  (hist[openId]||[]).forEach(m=>{
+    const d = document.createElement('div');
+    d.className = 'b '+(m.m?'me':'th');
+    d.textContent = m.x;
+
+    const s = document.createElement('small');
+    s.textContent = tm(m.ts)+
+      (m.m?(m.s===2?' ✓✓':m.s===1?' ✓':m.s===-1?' ⚠':' 🕓'):'');
+    d.appendChild(s);
+    box.appendChild(d);
+  });
+
+  box.scrollTop = box.scrollHeight;
+}
+
+/* PeerJS নেটওয়ার্ক */
+
+function initPeer() {
+  if(typeof Peer==='undefined') {
+    $('st').textContent = 'ইন্টারনেট চেক করুন';
+    toast('PeerJS লোড হয়নি। ইন্টারনেট চালু করুন।');
+    return;
+  }
+
+  peer = new Peer('mmr'+me.id,{
+    config:{
+      iceServers:[
+        {urls:'stun:stun.l.google.com:19302'},
+        {urls:'stun:stun1.l.google.com:19302'}
+      ]
+    }
+  });
+
+  peer.on('open',()=>{
+    $('st').textContent = '🟢 অনলাইন';
+  });
+
+  peer.on('disconnected',()=>{
+    $('st').textContent = '🟠 পুনঃসংযোগ হচ্ছে…';
+    setTimeout(()=>{
+      if(peer && !peer.destroyed && peer.disconnected) peer.reconnect();
+    },2000);
+  });
+
+  peer.on('connection',setup);
+  peer.on('call',incoming);
+
+  peer.on('error',e=>{
+    if(e.type==='unavailable-id') {
+      toast('নতুন কোড তৈরি হচ্ছে');
+      me.id = gen();
+      SV('mm_me',me);
+      try { peer.destroy(); } catch(err) {}
+      renderHome();
+      initPeer();
+    } else if(e.type==='peer-unavailable') {
+      toast('বন্ধু এখন অনলাইনে নেই');
+    } else {
+      $('st').textContent = '🔴 সংযোগ সমস্যা';
+    }
+  });
+}
+
+function setup(c) {
+  c.on('open',()=>{
+    conns[c.peer] = c;
+    c.send({t:'hi',name:me.name});
+    resend(c.peer.slice(3));
+  });
+
+  c.on('data',d=>onData(c.peer.slice(3),d));
+
+  c.on('close',()=>{
+    if(conns[c.peer]===c) delete conns[c.peer];
+  });
+
+  c.on('error',()=>{});
+}
+
+function getConn(id) {
+  return new Promise((ok,no)=>{
+    if(!peer || peer.destroyed) return no(new Error('Peer বন্ধ'));
+
+    const key = 'mmr'+id;
+    const existing = conns[key];
+
+    if(existing && existing.open) return ok(existing);
+
+    const c = peer.connect(key,{reliable:true});
+    setup(c);
+
+    let done = false;
+
+    c.on('open',()=>{
+      if(done) return;
+      done = true;
+      ok(c);
+    });
+
+    const timer = setTimeout(()=>{
+      if(done) return;
+      done = true;
+      no(new Error('সংযোগ সময় শেষ'));
+    },8000);
+
+    c.on('open',()=>clearTimeout(timer));
+  });
+}
+
+function onData(id,d) {
+  if(!d || !d.t) return;
+
+  if(d.t==='hi') {
+    ensure(id,d.name);
+    renderHome();
+    if(openId===id) $('cn').textContent = nameOf(id);
+  }
+
+  else if(d.t==='msg') {
+    ensure(id,d.name);
+
+    if(!(hist[id]||[]).some(x=>x.i===d.i)) {
+      addMsg(id,{i:d.i,m:0,x:d.x,ts:d.ts});
+      if(openId!==id) unread[id]=(unread[id]||0)+1;
+      renderHome();
+      beep(800);
+    }
+
+    const c = conns['mmr'+id];
+    if(c && c.open) c.send({t:'ack',i:d.i});
+  }
+
+  else if(d.t==='ack') {
+    const m = (hist[id]||[]).find(x=>x.i===d.i);
+
+    if(m) {
+      m.s = 2;
+      SV('mm_h',hist);
+      if(openId===id) renderMsgs();
+      renderHome();
+    }
+  }
+}
+
+function push(id,o) {
+  return getConn(id).then(c=>{
+    c.send({
+      t:'msg',i:o.i,x:o.x,ts:o.ts,name:me.name
+    });
+
+    if(o.s<1) o.s=1;
+
+    SV('mm_h',hist);
+    if(openId===id) renderMsgs();
+  });
+}
+
+function resend(id) {
+  (hist[id]||[])
+    .filter(m=>m.m && m.s<=0)
+    .forEach(m=>push(id,m).catch(()=>{}));
+}
+
+function send() {
+  const x = $('inp').value.trim();
+  if(!x || !openId) return;
+
+  $('inp').value = '';
+
+  const id = openId;
+  const o = {
+    i:Date.now()+''+(Math.random()*999|0),
+    m:1,x,ts:Date.now(),s:0
+  };
+
+  addMsg(id,o);
+
+  push(id,o).catch(()=>{
+    o.s=-1;
+    SV('mm_h',hist);
+    if(openId===id) renderMsgs();
+    toast('মেসেজ পাঠানো যায়নি। আবার চেষ্টা কর।');
+  });
+}
+
+/* অডিও ও ভিডিও কল */
+
+async function media(video) {
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    toast('কলের জন্য HTTPS ও অনুমতি লাগবে');
+    throw new Error('Media unavailable');
+  }
+
+  return navigator.mediaDevices.getUserMedia({
+    audio:true,
+    video:video?{facingMode:'user'}:false
+  });
+}
+
+async function startCall(video) {
+  const id = openId;
+  if(!id || call || pend) return;
+
+  try {
+    stream = await media(video);
+
+    call = peer.call('mmr'+id,stream,{
+      metadata:{video,name:me.name}
+    });
+
+    if(!call) throw new Error('কল শুরু হয়নি');
+
+    showCall(nameOf(id)+' — কল হচ্ছে…',video);
+    wireCall(call);
+  } catch(e) {
+    if(stream) {
+      stream.getTracks().forEach(t=>t.stop());
+      stream=null;
+    }
+    toast('কল করা যায়নি। ইন্টারনেট ও অনুমতি পরীক্ষা কর।');
+  }
+}
+
+function wireCall(c) {
+  c.on('stream',s=>{
+    $('rv').srcObject=s;
+    $('cinfo').textContent=nameOf(c.peer.slice(3));
+  });
+
+  c.on('close',()=>{
+    if(call===c) endCall();
+  });
+
+  c.on('error',()=>{
+    if(call===c) endCall();
+  });
+}
+
+function showCall(t,video) {
+  $('lv').srcObject=stream;
+  $('lv').style.display=video?'block':'none';
+  $('cam').style.display=video?'':'none';
+  $('cinfo').textContent=t;
+  $('call').classList.remove('hide');
+}
+
+function incoming(c) {
+  if(call || pend) {
+    c.close();
+    return;
+  }
+
+  pend=c;
+
+  const n=(c.metadata && c.metadata.name)||'বন্ধু';
+  const video=!!(c.metadata && c.metadata.video);
+
+  $('rn').textContent=n+(video?' ভিডিও কল করছে':' কল করছে');
+  $('ring').classList.remove('hide');
+
+  // আগের বিপ শব্দের পরিবর্তে নতুন সুরের রিংটোন
+  startRingtone();
+
+  c.on('close',()=>{
+    if(pend===c) {
+      pend=null;
+      stopRingtone();
+      $('ring').classList.add('hide');
+    }
+  });
+}
+
+$('acc').onclick=async()=>{
+  stopRingtone();
+
+  const c=pend;
+  if(!c) {
+    $('ring').classList.add('hide');
+    return;
+  }
+
+  pend=null;
+  $('ring').classList.add('hide');
+
+  const video=!!(c.metadata && c.metadata.video);
+
+  try {
+    stream=await media(video);
+    call=c;
+    c.answer(stream);
+    showCall('সংযোগ হচ্ছে…',video);
+    wireCall(c);
+  } catch(e) {
+    c.close();
+    toast('মাইক/ক্যামেরার অনুমতি দিন');
+  }
+};
+
+$('dec').onclick=()=>{
+  stopRingtone();
+  clearInterval(ringT);
+
+  const c=pend;
+  pend=null;
+
+  $('ring').classList.add('hide');
+
+  if(c) c.close();
+};
+
+function endCall() {
+  stopRingtone();
+  clearInterval(ringT);
+
+  const c=call;
+  call=null;
+
+  if(c) {
+    try { c.close(); } catch(e) {}
+  }
+
+  if(stream) {
+    stream.getTracks().forEach(t=>t.stop());
+    stream=null;
+  }
+
+  $('rv').srcObject=null;
+  $('lv').srcObject=null;
+  $('call').classList.add('hide');
+  $('ring').classList.add('hide');
+}
+
+$('end').onclick=endCall;
+
+$('mic').onclick=e=>{
+  const t=stream && stream.getAudioTracks()[0];
+  if(t) {
+    t.enabled=!t.enabled;
+    e.currentTarget.classList.toggle('off',!t.enabled);
+  }
+};
+
+$('cam').onclick=e=>{
+  const t=stream && stream.getVideoTracks()[0];
+  if(t) {
+    t.enabled=!t.enabled;
+    e.currentTarget.classList.toggle('off',!t.enabled);
+  }
+};
+
+/* অ্যাপের বোতাম */
+
+$('fab').onclick=()=>ask(
+  'বন্ধুর কোড লিখুন',
+  'যেমন: k3m9xa',
+  v=>{
+    v=v.toLowerCase().replace(/\s/g,'');
+
+    if(v===me.id) {
+      toast('এটা আপনার নিজের কোড');
+      return;
+    }
+
+    if(!/^[a-z0-9]{6}$/.test(v)) {
+      toast('সঠিক ৬ অক্ষরের কোড লিখুন');
+      return;
+    }
+
+    ensure(v);
+    renderHome();
+    openChat(v);
+  }
+);
+
+$('back').onclick=()=>{
+  openId=null;
+  $('chat').classList.add('hide');
+  $('home').classList.remove('hide');
+  renderHome();
+};
+
+$('snd').onclick=send;
+$('inp').onkeydown=e=>{
+  if(e.key==='Enter') send();
+};
+
+$('vc').onclick=()=>startCall(true);
+$('ac').onclick=()=>startCall(false);
+
+function boot() {
+  renderHome();
+  initPeer();
+}
+
+if(me && me.id && me.name) {
+  boot();
+} else {
+  ask('আপনার নাম কী?','নাম লিখুন',n=>{
+    me={id:gen(),name:n};
+    SV('mm_me',me);
+    boot();
+  });
+}
+</script>
+</body>
+</html>
